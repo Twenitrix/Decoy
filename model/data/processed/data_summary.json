@@ -1,0 +1,73 @@
+{
+  "synthetic_replications": 30,
+  "random_seed": 42,
+  "total_synthetic_records": 780,
+  "train_records": 546,
+  "val_records": 111,
+  "test_synthetic_records": 123,
+  "external_benchmark_records": 300,
+  "split_metadata": {
+    "group_column": "scenario_id",
+    "total_groups": 300,
+    "train_groups_count": 210,
+    "val_groups_count": 45,
+    "test_groups_count": 45,
+    "train_rows": 546,
+    "val_rows": 111,
+    "test_rows": 123,
+    "train_drift_rate": 0.4175824175824176,
+    "val_drift_rate": 0.4144144144144144,
+    "test_drift_rate": 0.45528455284552843
+  },
+  "synthetic_health_audit": {
+    "total_rows": 780,
+    "columns_with_missing": {},
+    "duplicate_event_ids": 0,
+    "duplicate_action_tuples": 0,
+    "drift_counts": {
+      "False": 450,
+      "True": 330
+    },
+    "drift_positive_rate": 0.4231,
+    "scenario_counts": {
+      "slow_gradual_drift": 240,
+      "normal_in_role": 90,
+      "sensitive_read_external_transfer": 90,
+      "repeated_denied_actions": 90,
+      "forbidden_resource_access": 60,
+      "prompt_injection_drift": 60,
+      "multi_agent_delegation": 60,
+      "unusual_but_legitimate": 30,
+      "cold_start_agent": 30,
+      "missing_incomplete_provenance": 30
+    },
+    "synthetic_breakdown": {
+      "True": 780
+    },
+    "is_healthy": true
+  },
+  "external_health_audit": {
+    "total_rows": 300,
+    "columns_with_missing": {},
+    "duplicate_event_ids": 0,
+    "duplicate_action_tuples": 0,
+    "drift_counts": {
+      "True": 173,
+      "False": 127
+    },
+    "drift_positive_rate": 0.5767,
+    "scenario_counts": {
+      "agentshield_benchmark": 300
+    },
+    "synthetic_breakdown": {
+      "False": 300
+    },
+    "is_healthy": true
+  },
+  "files_written": [
+    "D:\\DJ Hack\\model\\data\\processed\\train.parquet",
+    "D:\\DJ Hack\\model\\data\\processed\\val.parquet",
+    "D:\\DJ Hack\\model\\data\\processed\\test_synthetic.parquet",
+    "D:\\DJ Hack\\model\\data\\processed\\test_external_benchmark.parquet"
+  ]
+}

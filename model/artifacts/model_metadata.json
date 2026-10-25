@@ -1,0 +1,26 @@
+{
+  "model_selection_date": "2026-10-25",
+  "random_seed": 42,
+  "training_records": 546,
+  "validation_records": 111,
+  "test_records_untouched": 123,
+  "feature_schema_version": "v1.0",
+  "artifacts_saved": [
+    "feature_extractor.joblib",
+    "logistic_regression_behavioral.joblib",
+    "logistic_regression_full.joblib",
+    "isolation_forest.joblib",
+    "tuned_composite_detector.joblib",
+    "sliding_window_drift_detector.joblib"
+  ],
+  "latency_ms_per_sample": {
+    "Baseline_0_Hard_Rules": 0.1176,
+    "Baseline_A_Smoothed_Likelihood": 0.1604,
+    "Candidate_Markov_Sequence_Tuned": 0.0001,
+    "Candidate_Gradual_Drift_Detector": 0.7947,
+    "Candidate_Isolation_Forest": 1.1297,
+    "Candidate_Logistic_Regression_Behavioral": 0.3833,
+    "Candidate_Logistic_Regression_Full": 0.2795,
+    "Candidate_Tuned_Composite_Ensemble": 0.2512
+  }
+}
