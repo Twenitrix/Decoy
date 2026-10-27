@@ -1,6 +1,21 @@
+import sys
+import types
+from pathlib import Path
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+
+# Ensure `backend.app.*` imports resolve both when run from repo root and when
+# Vercel builds `backend/` as an isolated service root.
+_service_root = Path(__file__).resolve().parents[1]
+_repo_root = _service_root.parent
+if str(_repo_root) not in sys.path:
+    sys.path.insert(0, str(_repo_root))
+if "backend" not in sys.modules:
+    _backend_pkg = types.ModuleType("backend")
+    _backend_pkg.__path__ = [str(_service_root)]
+    sys.modules["backend"] = _backend_pkg
+
 from backend.app.core.config import settings
 from backend.app.core.database import Base, engine, SessionLocal
 from backend.app.data.seed_data import seed_database_if_empty

@@ -1,4 +1,7 @@
 # Core dependencies for Identity Drift Detection
+fastapi>=0.110.0
+uvicorn[standard]>=0.28.0
+joblib>=1.3.2
 numpy>=1.26.0
 pandas>=2.1.0
 scikit-learn>=1.4.0

@@ -1,3 +1,4 @@
+import os
 import sys
 import httpx
 from pathlib import Path
@@ -68,24 +69,26 @@ class RiskService:
         thresholds: Dict[str, float]
     ) -> Dict[str, Any]:
         """
-        1. If ML_SERVICE_URL is set, queries the external FastAPI ML service.
+        1. If ML_SERVICE_URL is set (including via Vercel internal service binding), queries the internal FastAPI ML service.
         2. Otherwise, if the trained IdentityDriftInferenceEngine from the Decoy repo is loaded,
            evaluates action using the real trained Phase 5 model artifacts.
         3. Falls back to baseline multi-dimension scoring if neither is available.
         """
-        # 1. External Microservice (if configured)
-        if self.ml_service_url:
+        # 1. Internal/External ML Microservice via ML_SERVICE_URL binding (if configured)
+        ml_service_url = (os.getenv("ML_SERVICE_URL") or self.ml_service_url or "").rstrip("/")
+        if ml_service_url:
             try:
                 async with httpx.AsyncClient(timeout=3.0) as client:
                     resp = await client.post(
-                        f"{self.ml_service_url}/api/v1/risk/score",
+                        f"{ml_service_url}/api/v1/risk/score",
                         json={
                             "agent_id": agent_id,
                             "role": role,
                             "tool": tool,
                             "resource": resource,
                             "destination": destination,
-                            "features": features
+                            "features": features,
+                            "thresholds": thresholds
                         }
                     )
                     if resp.status_code == 200:
