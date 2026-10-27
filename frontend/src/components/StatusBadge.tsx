@@ -1,49 +1,50 @@
 import React from 'react';
-import { CheckCircle2, AlertTriangle, XCircle, Clock, ShieldAlert, PauseCircle } from 'lucide-react';
-import { DecisionStatus, AgentStatus, ApprovalStatus } from '../types';
 
 interface StatusBadgeProps {
-  status: DecisionStatus | AgentStatus | ApprovalStatus | string;
+  status: string;
   size?: 'sm' | 'md';
 }
 
 export const StatusBadge: React.FC<StatusBadgeProps> = ({ status, size = 'md' }) => {
-  const norm = status?.toLowerCase() || '';
+  const s = (status || '').toLowerCase();
 
-  let styles = 'bg-slate-800 text-slate-300 border-slate-700';
-  let Icon = Clock;
+  let badgeStyle = 'bg-[#18181E] text-[#A1A1AA] border-[#272730]';
+  let dotStyle = 'bg-[#A1A1AA]';
 
-  if (norm === 'allowed' || norm === 'active' || norm === 'approved') {
-    styles = 'bg-emerald-950/70 text-emerald-300 border-emerald-800/80';
-    Icon = CheckCircle2;
-  } else if (norm === 'observed') {
-    styles = 'bg-cyan-950/70 text-cyan-300 border-cyan-800/80';
-    Icon = CheckCircle2;
-  } else if (norm === 'held_for_approval' || norm === 'pending') {
-    styles = 'bg-amber-950/70 text-amber-300 border-amber-700/80 animate-pulse';
-    Icon = Clock;
-  } else if (norm === 'denied' || norm === 'rejected' || norm === 'disabled') {
-    styles = 'bg-rose-950/70 text-rose-300 border-rose-800/80';
-    Icon = XCircle;
-  } else if (norm === 'restricted') {
-    styles = 'bg-orange-950/70 text-orange-300 border-orange-800/80';
-    Icon = AlertTriangle;
-  } else if (norm === 'isolated' || norm === 'suspended') {
-    styles = 'bg-red-950/90 text-red-200 border-red-600/90 font-bold';
-    Icon = ShieldAlert;
-  } else if (norm === 'expired') {
-    styles = 'bg-slate-900 text-slate-400 border-slate-800';
-    Icon = PauseCircle;
+  if (s === 'active' || s === 'allowed' || s === 'approved' || s === 'healthy') {
+    badgeStyle = 'bg-[#10B981]/12 text-[#10B981] border-[#10B981]/30';
+    dotStyle = 'bg-[#10B981] shadow-[0_0_8px_#10B981]';
+  } else if (s === 'observed') {
+    badgeStyle = 'bg-[#818CF8]/12 text-[#818CF8] border-[#818CF8]/30';
+    dotStyle = 'bg-[#818CF8] shadow-[0_0_8px_#818CF8]';
+  } else if (s === 'pending' || s === 'held_for_approval' || s === 'suspended') {
+    badgeStyle = 'bg-[#F59E0B]/15 text-[#F59E0B] border-[#F59E0B]/35';
+    dotStyle = 'bg-[#F59E0B] shadow-[0_0_8px_#F59E0B]';
+  } else if (s === 'restricted' || s === 'denied') {
+    badgeStyle = 'bg-[#FF5A36]/15 text-[#FF5A36] border-[#FF5A36]/35';
+    dotStyle = 'bg-[#FF5A36] shadow-[0_0_8px_#FF5A36]';
+  } else if (
+    s === 'disabled' ||
+    s === 'isolated' ||
+    s === 'rejected' ||
+    s === 'critical' ||
+    s === 'expired'
+  ) {
+    badgeStyle = 'bg-[#F43F5E]/15 text-[#F43F5E] border-[#F43F5E]/40';
+    dotStyle = 'bg-[#F43F5E] shadow-[0_0_8px_#F43F5E]';
   }
 
-  const sizeClasses = size === 'sm' ? 'px-2 py-0.5 text-xs' : 'px-2.5 py-1 text-xs';
+  const sizeClass =
+    size === 'sm' ? 'px-2.5 py-0.5 text-[10px]' : 'px-3 py-1 text-[11px]';
+
+  const displayLabel = status ? status.replace(/_/g, ' ').toUpperCase() : 'UNKNOWN';
 
   return (
     <span
-      className={`inline-flex items-center gap-1.5 font-medium rounded-full border ${styles} ${sizeClasses}`}
+      className={`inline-flex items-center gap-1.5 rounded-full font-mono font-semibold border tracking-wider ${badgeStyle} ${sizeClass}`}
     >
-      <Icon className={size === 'sm' ? 'w-3 h-3' : 'w-3.5 h-3.5'} />
-      <span className="capitalize">{norm.replace(/_/g, ' ')}</span>
+      <span className={`w-1.5 h-1.5 rounded-full ${dotStyle}`} />
+      {displayLabel}
     </span>
   );
 };

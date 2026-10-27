@@ -3,44 +3,52 @@ import { RiskTier } from '../types';
 
 interface RiskTierBadgeProps {
   tier: RiskTier | string;
-  showLabel?: boolean;
 }
 
-export const RiskTierBadge: React.FC<RiskTierBadgeProps> = ({ tier, showLabel = true }) => {
-  const norm = (tier || 'L0').toUpperCase();
+export const RiskTierBadge: React.FC<RiskTierBadgeProps> = ({ tier }) => {
+  const styles: Record<string, { badge: string; dot: string }> = {
+    L0: {
+      badge: 'bg-[#10B981]/12 text-[#10B981] border-[#10B981]/30',
+      dot: 'bg-[#10B981] shadow-[0_0_8px_#10B981]',
+    },
+    L1: {
+      badge: 'bg-[#818CF8]/12 text-[#818CF8] border-[#818CF8]/30',
+      dot: 'bg-[#818CF8] shadow-[0_0_8px_#818CF8]',
+    },
+    L2: {
+      badge: 'bg-[#F59E0B]/15 text-[#F59E0B] border-[#F59E0B]/40',
+      dot: 'bg-[#F59E0B] shadow-[0_0_8px_#F59E0B]',
+    },
+    L3: {
+      badge: 'bg-[#FF5A36]/15 text-[#FF5A36] border-[#FF5A36]/40',
+      dot: 'bg-[#FF5A36] shadow-[0_0_8px_#FF5A36]',
+    },
+    L4: {
+      badge: 'bg-[#F43F5E]/15 text-[#F43F5E] border-[#F43F5E]/45',
+      dot: 'bg-[#F43F5E] shadow-[0_0_10px_#F43F5E] animate-pulse',
+    },
+  };
 
-  let styles = 'bg-slate-800 text-slate-300 border-slate-700';
-  let label = 'Unknown';
+  const labels: Record<string, string> = {
+    L0: 'L0 · Allow',
+    L1: 'L1 · Observe',
+    L2: 'L2 · Step-Up',
+    L3: 'L3 · Restrict',
+    L4: 'L4 · Isolate',
+  };
 
-  switch (norm) {
-    case 'L0':
-      styles = 'bg-emerald-950/80 text-emerald-300 border-emerald-700/60';
-      label = 'Allow';
-      break;
-    case 'L1':
-      styles = 'bg-cyan-950/80 text-cyan-300 border-cyan-700/60';
-      label = 'Observe';
-      break;
-    case 'L2':
-      styles = 'bg-amber-950/80 text-amber-300 border-amber-600/70';
-      label = 'Step-up';
-      break;
-    case 'L3':
-      styles = 'bg-orange-950/80 text-orange-300 border-orange-600/70';
-      label = 'Restrict';
-      break;
-    case 'L4':
-      styles = 'bg-red-950 text-red-200 border-red-500 shadow-sm shadow-red-950 font-bold';
-      label = 'Isolate';
-      break;
-  }
+  const style = styles[tier] || {
+    badge: 'bg-[#18181E] text-[#A1A1AA] border-[#272730]',
+    dot: 'bg-[#A1A1AA]',
+  };
+  const label = labels[tier] || tier;
 
   return (
     <span
-      className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-xs font-semibold font-mono border ${styles}`}
+      className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-mono font-semibold border tracking-tight ${style.badge}`}
     >
-      <span>{norm}</span>
-      {showLabel && <span className="opacity-80 font-sans font-normal text-[11px]">— {label}</span>}
+      <span className={`w-1.5 h-1.5 rounded-full ${style.dot}`} />
+      {label}
     </span>
   );
 };

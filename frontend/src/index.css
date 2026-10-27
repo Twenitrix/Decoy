@@ -1,29 +1,142 @@
 @import "tailwindcss";
 
-:root {
-  font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
-  color-scheme: dark;
+@layer base {
+  :root {
+    --bg-base: #09090B;
+    --bg-elevated: #121216;
+    --bg-secondary: #18181E;
+    --border-subtle: #272730;
+    --text-primary: #F4F1EA;
+    --text-secondary: #A1A1AA;
+    --accent-primary: #FF5A36;
+    --accent-violet: #8B5CF6;
+    --state-safe: #10B981;
+    --state-stepup: #F59E0B;
+    --state-restricted: #FF5A36;
+    --state-blocked: #F43F5E;
+  }
+
+  body {
+    background-color: #09090B;
+    color: #F4F1EA;
+    font-family: 'Plus Jakarta Sans', 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    overflow-x: hidden;
+    letter-spacing: -0.01em;
+  }
+
+  h1, h2, h3, h4, .font-display {
+    font-family: 'Space Grotesk', 'Plus Jakarta Sans', sans-serif;
+    letter-spacing: -0.03em;
+  }
+
+  .font-editorial {
+    font-family: 'Instrument Serif', Georgia, serif;
+    letter-spacing: -0.01em;
+  }
+
+  code, pre, .font-mono {
+    font-family: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    font-feature-settings: "tnum" on, "zero" on;
+  }
 }
 
-body {
-  margin: 0;
-  background-color: #0b0f19;
-  color: #f1f5f9;
-  min-height: 100vh;
-}
-
-/* Custom scrollbars */
+/* Custom Dark Scrollbars */
 ::-webkit-scrollbar {
   width: 6px;
   height: 6px;
 }
+
 ::-webkit-scrollbar-track {
-  background: #0f172a;
+  background: #09090B;
 }
+
 ::-webkit-scrollbar-thumb {
-  background: #334155;
-  border-radius: 3px;
+  background: #272730;
+  border-radius: 9999px;
 }
+
 ::-webkit-scrollbar-thumb:hover {
-  background: #475569;
+  background: #FF5A36;
+}
+
+/* Editorial & Architectural Atmosphere */
+.bg-command-atmosphere {
+  background-color: #09090B;
+  background-image:
+    radial-gradient(ellipse 75% 50% at 15% -10%, rgba(255, 90, 54, 0.08), transparent 65%),
+    radial-gradient(ellipse 60% 45% at 88% 5%, rgba(139, 92, 246, 0.07), transparent 60%),
+    radial-gradient(ellipse 50% 40% at 50% 100%, rgba(16, 185, 129, 0.04), transparent 70%);
+}
+
+.bg-SubtleDots {
+  background-image: radial-gradient(rgba(244, 241, 234, 0.04) 1px, transparent 1px);
+  background-size: 32px 32px;
+}
+
+/* Architectural Surface Hierarchy */
+.surface-elevated {
+  background: linear-gradient(180deg, rgba(24, 24, 30, 0.88) 0%, rgba(18, 18, 22, 0.96) 100%);
+  border: 1px solid rgba(39, 39, 48, 0.85);
+  box-shadow:
+    0 20px 50px -15px rgba(0, 0, 0, 0.7),
+    0 1px 0 0 rgba(244, 241, 234, 0.05) inset;
+}
+
+.surface-secondary {
+  background: rgba(24, 24, 30, 0.75);
+  border: 1px solid rgba(39, 39, 48, 0.7);
+}
+
+.surface-well {
+  background: rgba(9, 9, 11, 0.85);
+  border: 1px solid rgba(39, 39, 48, 0.8);
+  box-shadow: inset 0 2px 10px rgba(0, 0, 0, 0.55);
+}
+
+.surface-glass {
+  background: rgba(18, 18, 22, 0.82);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(244, 241, 234, 0.08);
+}
+
+.surface-interactive {
+  transition: transform 220ms cubic-bezier(0.22, 1, 0.36, 1),
+              border-color 220ms cubic-bezier(0.22, 1, 0.36, 1),
+              box-shadow 220ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.surface-interactive:hover {
+  border-color: rgba(255, 90, 54, 0.4);
+  box-shadow:
+    0 24px 48px -12px rgba(0, 0, 0, 0.75),
+    0 0 28px -8px rgba(255, 90, 54, 0.16),
+    0 1px 0 0 rgba(255, 90, 54, 0.2) inset;
+}
+
+/* Geometric Corner Bracket Motif (Presentation Graphic Language) */
+.editorial-frame {
+  position: relative;
+}
+.editorial-frame::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 14px;
+  height: 14px;
+  border-top: 2px solid #FF5A36;
+  border-left: 2px solid #FF5A36;
+  border-top-left-radius: 6px;
+  pointer-events: none;
+}
+
+/* Respect reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  *, ::before, ::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }

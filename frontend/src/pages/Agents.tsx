@@ -3,26 +3,29 @@ import { useNavigate } from 'react-router-dom';
 import {
   Bot,
   Search,
-  Filter,
   Plus,
   ShieldAlert,
   Power,
-  ExternalLink,
-  ShieldCheck,
-  CheckCircle2,
-  XCircle
+  ArrowUpRight
 } from 'lucide-react';
 import { useAgents, useRevokeAgent, useUpdateAgent } from '../hooks/useAgents';
 import { usePolicies } from '../hooks/usePolicies';
 import { Agent, AgentStatus } from '../types';
 import { StatusBadge } from '../components/StatusBadge';
-import { RiskTierBadge } from '../components/RiskTierBadge';
 import { LoadingState } from '../components/LoadingState';
 import { ErrorState } from '../components/ErrorState';
 import { EmptyState } from '../components/EmptyState';
 import { ConfirmDialog } from '../components/ConfirmDialog';
 import { agentsApi } from '../api/agents';
 import { useQueryClient } from '@tanstack/react-query';
+import {
+  MotionPage,
+  motion,
+  AnimatePresence,
+  fadeUpItem,
+  modalBackdropVariant,
+  modalPanelVariant
+} from '../components/motion';
 
 export const Agents: React.FC = () => {
   const navigate = useNavigate();
@@ -32,10 +35,8 @@ export const Agents: React.FC = () => {
   const [roleFilter, setRoleFilter] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
 
-  // Confirmation dialog state for Revoke / Suspend
   const [revokeModalAgent, setRevokeModalAgent] = useState<Agent | null>(null);
 
-  // New Agent Modal state
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [newAgentName, setNewAgentName] = useState('');
   const [newAgentRole, setNewAgentRole] = useState('Support Agent');
@@ -86,7 +87,7 @@ export const Agents: React.FC = () => {
     }
   };
 
-  if (isLoading) return <LoadingState message="Loading agent inventory..." />;
+  if (isLoading) return <LoadingState message="Loading autonomous agent inventory..." />;
   if (error) return <ErrorState onRetry={() => refetch()} />;
 
   const filteredAgents = (agents || []).filter((a) => {
@@ -101,57 +102,74 @@ export const Agents: React.FC = () => {
   });
 
   return (
-    <div className="space-y-6 max-w-7xl mx-auto">
+    <MotionPage className="space-y-7 max-w-7xl mx-auto pb-10">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <motion.div
+        variants={fadeUpItem}
+        className="flex flex-col sm:flex-row sm:items-end justify-between gap-5 p-7 sm:p-8 rounded-[28px] surface-elevated editorial-frame"
+      >
         <div>
-          <h2 className="text-xl font-bold text-slate-100 flex items-center gap-2">
-            <Bot className="w-5 h-5 text-cyan-400" />
-            Agent Registry & Identity Inventory
+          <div className="flex items-center gap-2 mb-2.5">
+            <span className="px-3 py-1 rounded-full text-[10px] font-mono bg-[#FF5A36]/15 text-[#FF5A36] border border-[#FF5A36]/35 font-semibold flex items-center gap-1.5">
+              <Bot className="w-3 h-3 text-[#FF5A36]" />
+              IDENTITY REGISTRY
+            </span>
+          </div>
+          <h2 className="font-display text-2xl sm:text-3xl font-bold text-[#F4F1EA]">
+            Autonomous Agent{' '}
+            <span className="font-editorial italic font-normal text-[#FF5A36]">
+              Fleet & Baselines
+            </span>
           </h2>
-          <p className="text-xs text-slate-400 mt-1">
-            Registered autonomous processes, assigned security policies, risk state, and identity revocation.
+          <p className="text-sm text-[#A1A1AA] mt-2 max-w-2xl leading-relaxed">
+            Registry of autonomous agent identities governed by pre-execution policy gating, role-conditioned behavioral baselines, and credential isolation.
           </p>
         </div>
-        <button
+
+        <motion.button
+          whileHover={{ y: -1 }}
+          whileTap={{ scale: 0.98 }}
           onClick={() => setIsCreateOpen(true)}
-          className="inline-flex items-center gap-2 px-4 py-2 bg-cyan-600 hover:bg-cyan-500 text-white rounded-xl text-xs font-semibold shadow-md shadow-cyan-950 transition-colors"
+          className="inline-flex items-center gap-2 px-5 py-3 bg-[#F4F1EA] hover:bg-white text-[#09090B] rounded-full text-xs font-bold shadow-lg transition-all self-start sm:self-auto"
         >
           <Plus className="w-4 h-4" />
-          Register New Agent
-        </button>
-      </div>
+          <span>Register New Agent</span>
+        </motion.button>
+      </motion.div>
 
       {/* Filter and Search Bar */}
-      <div className="flex flex-col md:flex-row items-center gap-3 p-4 bg-slate-900/50 border border-slate-800 rounded-2xl">
+      <motion.div
+        variants={fadeUpItem}
+        className="p-4 rounded-2xl surface-elevated flex flex-col md:flex-row items-center justify-between gap-3"
+      >
         <div className="relative flex-1 w-full">
-          <Search className="w-4 h-4 text-slate-500 absolute left-3.5 top-1/2 -translate-y-1/2" />
+          <Search className="w-4 h-4 text-[#A1A1AA] absolute left-4 top-1/2 -translate-y-1/2" />
           <input
             type="text"
-            placeholder="Search by agent name, ID, or role..."
+            placeholder="Search agents by name, ID, or declared role..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="w-full pl-10 pr-4 py-2 bg-slate-950 border border-slate-800 rounded-xl text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-cyan-500"
+            className="w-full pl-11 pr-4 py-2.5 bg-[#09090B] border border-[#272730] rounded-xl text-xs text-[#F4F1EA] placeholder-[#A1A1AA]/60 focus:outline-none focus:border-[#FF5A36]"
           />
         </div>
 
-        <div className="flex items-center gap-3 w-full md:w-auto">
+        <div className="flex items-center gap-2.5 w-full md:w-auto">
           <select
             value={roleFilter}
             onChange={(e) => setRoleFilter(e.target.value)}
-            className="px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-xs text-slate-300 focus:outline-none focus:border-cyan-500"
+            className="px-4 py-2.5 bg-[#09090B] border border-[#272730] rounded-xl text-xs text-[#F4F1EA] font-mono focus:outline-none focus:border-[#FF5A36]"
           >
             <option value="">All Roles</option>
+            <option value="Financial Auditor">Financial Auditor</option>
             <option value="Procurement Specialist">Procurement Specialist</option>
             <option value="Support Agent">Support Agent</option>
-            <option value="Financial Auditor">Financial Auditor</option>
             <option value="DevOps Automation">DevOps Automation</option>
           </select>
 
           <select
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value)}
-            className="px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-xs text-slate-300 focus:outline-none focus:border-cyan-500"
+            className="px-4 py-2.5 bg-[#09090B] border border-[#272730] rounded-xl text-xs text-[#F4F1EA] font-mono focus:outline-none focus:border-[#FF5A36]"
           >
             <option value="">All Statuses</option>
             <option value="active">Active</option>
@@ -159,197 +177,223 @@ export const Agents: React.FC = () => {
             <option value="disabled">Disabled</option>
           </select>
         </div>
-      </div>
+      </motion.div>
 
-      {/* Agents Table */}
+      {/* Agents List Grid */}
       {filteredAgents.length === 0 ? (
-        <EmptyState
-          title="No agents match query"
-          description="Try clearing search filters or registering a new agent."
-        />
+        <motion.div variants={fadeUpItem}>
+          <EmptyState
+            icon={Bot}
+            title="No agents found"
+            description="No agent identities match the current search filters."
+          />
+        </motion.div>
       ) : (
-        <div className="overflow-x-auto rounded-2xl border border-slate-800 bg-slate-900/40">
-          <table className="w-full text-left text-sm text-slate-300">
-            <thead>
-              <tr className="border-b border-slate-800 bg-slate-900/80 text-xs font-semibold uppercase tracking-wider text-slate-400 font-mono">
-                <th className="px-4 py-3.5">Agent Details</th>
-                <th className="px-4 py-3.5">Role</th>
-                <th className="px-4 py-3.5">Status</th>
-                <th className="px-4 py-3.5">Policy / Version</th>
-                <th className="px-4 py-3.5">Risk Indicator</th>
-                <th className="px-4 py-3.5">Actions Evaluated</th>
-                <th className="px-4 py-3.5">Last Seen</th>
-                <th className="px-4 py-3.5 text-right">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-800/60 font-normal">
-              {filteredAgents.map((agent) => (
-                <tr key={agent.id} className="hover:bg-slate-850/40 transition-colors">
-                  <td className="px-4 py-3.5">
-                    <div className="font-semibold text-slate-100 flex items-center gap-2">
-                      <span>{agent.name}</span>
+        <motion.div
+          variants={fadeUpItem}
+          className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5"
+        >
+          {filteredAgents.map((agent, idx) => (
+            <motion.div
+              key={agent.id}
+              whileHover={{ y: -3 }}
+              className="p-6 rounded-3xl surface-elevated surface-interactive flex flex-col justify-between"
+            >
+              <div>
+                <div className="flex items-start justify-between gap-3 mb-4">
+                  <div className="flex items-center gap-3.5">
+                    <div className="w-11 h-11 rounded-2xl bg-[#18181E] border border-[#272730] flex items-center justify-center font-mono text-xs font-bold text-[#FF5A36]">
+                      0{idx + 1}
                     </div>
-                    <div className="text-[11px] font-mono text-cyan-400/80">{agent.id}</div>
-                    {agent.declared_task && (
-                      <div className="text-[11px] text-slate-500 truncate max-w-xs mt-0.5">
-                        {agent.declared_task}
-                      </div>
-                    )}
-                  </td>
-                  <td className="px-4 py-3.5 text-xs text-slate-300">{agent.role}</td>
-                  <td className="px-4 py-3.5">
-                    <StatusBadge status={agent.status} size="sm" />
-                  </td>
-                  <td className="px-4 py-3.5 font-mono text-xs">
-                    <span className="text-slate-300">{agent.policy_id}</span>
-                    <span className="ml-1 text-[11px] text-slate-500">({agent.policy_version || 'v1'})</span>
-                  </td>
-                  <td className="px-4 py-3.5">
-                    <RiskTierBadge tier={agent.current_risk_tier || 'L0'} />
-                  </td>
-                  <td className="px-4 py-3.5 font-mono text-xs text-slate-300">
-                    {agent.action_count ?? 0}
-                  </td>
-                  <td className="px-4 py-3.5 text-xs font-mono text-slate-400">
-                    {agent.last_seen_at
-                      ? new Date(agent.last_seen_at).toLocaleTimeString([], {
-                          hour: '2-digit',
-                          minute: '2-digit',
-                        })
-                      : 'Never'}
-                  </td>
-                  <td className="px-4 py-3.5 text-right">
-                    <div className="inline-flex items-center gap-1.5">
-                      <button
-                        onClick={() => navigate(`/agents/${agent.id}`)}
-                        title="View Detailed Telemetry & Risk Trend"
-                        className="p-1.5 rounded-lg text-slate-400 hover:text-cyan-300 hover:bg-slate-800 transition-colors"
-                      >
-                        <ExternalLink className="w-4 h-4" />
-                      </button>
-
-                      <button
-                        onClick={() => handleToggleStatus(agent)}
-                        title={agent.status === 'active' ? 'Suspend Agent' : 'Activate Agent'}
-                        className={`p-1.5 rounded-lg transition-colors ${
-                          agent.status === 'active'
-                            ? 'text-slate-400 hover:text-amber-300 hover:bg-amber-950/40'
-                            : 'text-slate-400 hover:text-emerald-300 hover:bg-emerald-950/40'
-                        }`}
-                      >
-                        <Power className="w-4 h-4" />
-                      </button>
-
-                      <button
-                        onClick={() => setRevokeModalAgent(agent)}
-                        title="Revoke Credentials with Confirmation"
-                        className="p-1.5 rounded-lg text-slate-400 hover:text-rose-400 hover:bg-rose-950/40 transition-colors"
-                      >
-                        <ShieldAlert className="w-4 h-4" />
-                      </button>
+                    <div>
+                      <h3 className="font-display font-bold text-base text-[#F4F1EA]">
+                        {agent.name}
+                      </h3>
+                      <p className="text-xs text-[#A1A1AA] font-medium mt-0.5">{agent.role}</p>
                     </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+                  </div>
+                  <StatusBadge status={agent.status} size="sm" />
+                </div>
+
+                <div className="space-y-2 py-4 border-y border-[#272730] text-xs">
+                  <div className="flex items-center justify-between text-[#A1A1AA] font-mono text-[11px]">
+                    <span>Identity ID</span>
+                    <span className="text-[#F4F1EA] font-semibold">{agent.id}</span>
+                  </div>
+                  <div className="flex items-center justify-between text-[#A1A1AA] text-[11px]">
+                    <span>Bound Policy</span>
+                    <span className="font-mono text-[#FF5A36]">
+                      {agent.policy_id} ({agent.policy_version || 'v1'})
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between text-[#A1A1AA] text-[11px]">
+                    <span>Evaluated Actions</span>
+                    <span className="font-mono text-[#F4F1EA] tabular-nums font-bold">
+                      {agent.action_count || 0}
+                    </span>
+                  </div>
+                  {agent.declared_task && (
+                    <div className="pt-2 text-xs text-[#A1A1AA] line-clamp-2 leading-relaxed">
+                      <span className="text-[#F4F1EA]/80 font-medium">Objective: </span>
+                      {agent.declared_task}
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <div className="flex items-center justify-between gap-2 mt-5">
+                <button
+                  onClick={() => navigate(`/agents/${agent.id}`)}
+                  className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-[#18181E] hover:bg-[#22222A] border border-[#272730] text-xs font-bold text-[#F4F1EA] transition-all"
+                >
+                  <span>Telemetry Profile</span>
+                  <ArrowUpRight className="w-3.5 h-3.5 text-[#FF5A36]" />
+                </button>
+
+                <div className="flex items-center gap-1.5">
+                  <button
+                    onClick={() => handleToggleStatus(agent)}
+                    title={agent.status === 'active' ? 'Suspend Agent' : 'Activate Agent'}
+                    className={`p-2 rounded-xl border transition-colors ${
+                      agent.status === 'active'
+                        ? 'border-[#F59E0B]/35 text-[#F59E0B] hover:bg-[#F59E0B]/10'
+                        : 'border-[#10B981]/35 text-[#10B981] hover:bg-[#10B981]/10'
+                    }`}
+                  >
+                    <Power className="w-4 h-4" />
+                  </button>
+
+                  <button
+                    onClick={() => setRevokeModalAgent(agent)}
+                    title="Emergency Revoke Credentials"
+                    className="p-2 rounded-xl border border-[#F43F5E]/35 text-[#F43F5E] hover:bg-[#F43F5E]/10 transition-colors"
+                  >
+                    <ShieldAlert className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
+            </motion.div>
+          ))}
+        </motion.div>
       )}
 
       {/* Revocation Confirmation Dialog */}
       <ConfirmDialog
-        isOpen={Boolean(revokeModalAgent)}
-        title="Revoke Agent Credentials & Suspend"
-        message={`Are you sure you want to revoke credentials and suspend '${revokeModalAgent?.name}' (${revokeModalAgent?.id})? Any pending authorization tokens will be invalidated and future tool calls will be immediately rejected.`}
-        confirmLabel="Revoke Credentials"
+        isOpen={!!revokeModalAgent}
+        title={`Revoke Credentials: ${revokeModalAgent?.name}?`}
+        message="This is a critical containment action (L4). It immediately invalidates the agent's HMAC signing secrets and transitions the identity to isolated status. Any subsequent tool calls will be immediately blocked."
+        confirmLabel="Confirm Emergency Revoke"
         isDestructive={true}
         onConfirm={handleRevokeConfirm}
         onCancel={() => setRevokeModalAgent(null)}
       />
 
       {/* Register Agent Modal */}
-      {isCreateOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm">
-          <div className="bg-slate-900 border border-slate-700 rounded-2xl p-6 max-w-md w-full shadow-2xl">
-            <h3 className="text-base font-bold text-slate-100 mb-1">Register New AI Agent</h3>
-            <p className="text-xs text-slate-400 mb-4">
-              Add an autonomous agent process to the security gateway registry.
-            </p>
+      <AnimatePresence>
+        {isCreateOpen && (
+          <motion.div
+            variants={modalBackdropVariant}
+            initial="hidden"
+            animate="visible"
+            exit="exit"
+            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md"
+          >
+            <motion.div
+              variants={modalPanelVariant}
+              initial="hidden"
+              animate="visible"
+              exit="exit"
+              className="surface-elevated rounded-3xl p-7 max-w-lg w-full shadow-2xl"
+            >
+              <h3 className="font-display text-lg font-bold text-[#F4F1EA] flex items-center gap-2.5">
+                <Bot className="w-5 h-5 text-[#FF5A36]" />
+                Register Autonomous Agent Identity
+              </h3>
+              <p className="text-xs text-[#A1A1AA] mt-1.5 mb-5 leading-relaxed">
+                Registers an agent identity with a declared role and bound policy. Baseline behavioral models are automatically conditioned on the declared role.
+              </p>
 
-            <form onSubmit={handleCreateAgent} className="space-y-4">
-              <div>
-                <label className="block text-xs font-medium text-slate-300 mb-1">Agent Name</label>
-                <input
-                  type="text"
-                  required
-                  placeholder="e.g. Invoicing Assistant"
-                  value={newAgentName}
-                  onChange={(e) => setNewAgentName(e.target.value)}
-                  className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-xs text-slate-200 focus:outline-none focus:border-cyan-500"
-                />
-              </div>
+              <form onSubmit={handleCreateAgent} className="space-y-4">
+                <div>
+                  <label className="block text-[11px] font-mono uppercase tracking-wider text-[#A1A1AA] mb-1.5">
+                    Agent Name
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="e.g. Procurement Negotiator Agent"
+                    value={newAgentName}
+                    onChange={(e) => setNewAgentName(e.target.value)}
+                    className="w-full px-3.5 py-2.5 bg-[#09090B] border border-[#272730] rounded-xl text-xs text-[#F4F1EA] focus:outline-none focus:border-[#FF5A36]"
+                  />
+                </div>
 
-              <div>
-                <label className="block text-xs font-medium text-slate-300 mb-1">Role</label>
-                <select
-                  value={newAgentRole}
-                  onChange={(e) => setNewAgentRole(e.target.value)}
-                  className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-xs text-slate-200 focus:outline-none focus:border-cyan-500"
-                >
-                  <option value="Procurement Specialist">Procurement Specialist</option>
-                  <option value="Support Agent">Support Agent</option>
-                  <option value="Financial Auditor">Financial Auditor</option>
-                  <option value="DevOps Automation">DevOps Automation</option>
-                </select>
-              </div>
+                <div>
+                  <label className="block text-[11px] font-mono uppercase tracking-wider text-[#A1A1AA] mb-1.5">
+                    Declared Functional Role
+                  </label>
+                  <select
+                    value={newAgentRole}
+                    onChange={(e) => setNewAgentRole(e.target.value)}
+                    className="w-full px-3.5 py-2.5 bg-[#09090B] border border-[#272730] rounded-xl text-xs text-[#F4F1EA] font-mono focus:outline-none focus:border-[#FF5A36]"
+                  >
+                    <option value="Procurement Specialist">Procurement Specialist</option>
+                    <option value="Support Agent">Support Agent</option>
+                    <option value="Financial Auditor">Financial Auditor</option>
+                    <option value="DevOps Automation">DevOps Automation</option>
+                  </select>
+                </div>
 
-              <div>
-                <label className="block text-xs font-medium text-slate-300 mb-1">Assigned Policy</label>
-                <select
-                  value={newAgentPolicy}
-                  onChange={(e) => setNewAgentPolicy(e.target.value)}
-                  className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-xs text-slate-200 focus:outline-none focus:border-cyan-500"
-                >
-                  {policies?.map((pol) => (
-                    <option key={pol.id} value={pol.id}>
-                      {pol.name} ({pol.id})
-                    </option>
-                  )) || (
-                    <option value="pol-support-v1">pol-support-v1</option>
-                  )}
-                </select>
-              </div>
+                <div>
+                  <label className="block text-[11px] font-mono uppercase tracking-wider text-[#A1A1AA] mb-1.5">
+                    Enforcement Policy Binding
+                  </label>
+                  <select
+                    value={newAgentPolicy}
+                    onChange={(e) => setNewAgentPolicy(e.target.value)}
+                    className="w-full px-3.5 py-2.5 bg-[#09090B] border border-[#272730] rounded-xl text-xs text-[#F4F1EA] font-mono focus:outline-none focus:border-[#FF5A36]"
+                  >
+                    {policies?.map((p) => (
+                      <option key={p.id} value={p.id}>
+                        {p.name} ({p.role})
+                      </option>
+                    ))}
+                  </select>
+                </div>
 
-              <div>
-                <label className="block text-xs font-medium text-slate-300 mb-1">Declared Task Scope</label>
-                <textarea
-                  rows={2}
-                  placeholder="e.g. Verify pending invoices against purchase orders"
-                  value={newAgentTask}
-                  onChange={(e) => setNewAgentTask(e.target.value)}
-                  className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-xs text-slate-200 focus:outline-none focus:border-cyan-500"
-                />
-              </div>
+                <div>
+                  <label className="block text-[11px] font-mono uppercase tracking-wider text-[#A1A1AA] mb-1.5">
+                    Declared Task Context
+                  </label>
+                  <textarea
+                    rows={2}
+                    placeholder="e.g. Processing vendor invoice matching and order queries."
+                    value={newAgentTask}
+                    onChange={(e) => setNewAgentTask(e.target.value)}
+                    className="w-full px-3.5 py-2.5 bg-[#09090B] border border-[#272730] rounded-xl text-xs text-[#F4F1EA] focus:outline-none focus:border-[#FF5A36] leading-relaxed"
+                  />
+                </div>
 
-              <div className="flex items-center justify-end gap-3 pt-3 border-t border-slate-800">
-                <button
-                  type="button"
-                  onClick={() => setIsCreateOpen(false)}
-                  className="px-4 py-2 text-xs font-medium text-slate-400 hover:bg-slate-800 rounded-lg"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  className="px-4 py-2 text-xs font-semibold bg-cyan-600 hover:bg-cyan-500 text-white rounded-lg shadow-sm"
-                >
-                  Register Agent
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-    </div>
+                <div className="flex items-center justify-end gap-3 pt-4 border-t border-[#272730]">
+                  <button
+                    type="button"
+                    onClick={() => setIsCreateOpen(false)}
+                    className="px-4 py-2 text-xs font-medium text-[#A1A1AA] hover:text-[#F4F1EA] hover:bg-[#18181E] rounded-xl transition-colors"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    className="px-5 py-2.5 text-xs font-bold text-[#09090B] bg-[#FF5A36] hover:bg-[#ff6b4a] rounded-full shadow-md transition-all"
+                  >
+                    Confirm Registration
+                  </button>
+                </div>
+              </form>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </MotionPage>
   );
 };

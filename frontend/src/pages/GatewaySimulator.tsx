@@ -1,14 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import {
   PlayCircle,
-  ShieldAlert,
-  ShieldCheck,
   CheckCircle2,
-  XCircle,
   Clock,
   Terminal,
-  Activity,
-  ArrowRight,
   Sparkles,
   Zap
 } from 'lucide-react';
@@ -18,12 +13,12 @@ import { gatewayApi, ActionSimulationResponse } from '../api/gateway';
 import { approvalsApi } from '../api/approvals';
 import { StatusBadge } from '../components/StatusBadge';
 import { RiskTierBadge } from '../components/RiskTierBadge';
+import { MotionPage, motion, fadeUpItem } from '../components/motion';
 
 export const GatewaySimulator: React.FC = () => {
   const queryClient = useQueryClient();
   const { data: agents } = useAgents();
 
-  // Preset scenarios for instant testing
   const presets = [
     {
       name: 'Normal In-Role Action (L0 Allow)',
@@ -71,7 +66,6 @@ export const GatewaySimulator: React.FC = () => {
   const [simulationResult, setSimulationResult] = useState<ActionSimulationResponse | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
-  // Synchronize agentId with loaded agents
   useEffect(() => {
     if (agents && agents.length > 0) {
       const active = agents.find((a) => a.id === agentId) || agents[0];
@@ -87,53 +81,50 @@ export const GatewaySimulator: React.FC = () => {
     }
   }, [agents, agentId, resource]);
 
-  const applyPreset = (p: typeof presets[0]) => {
-    let targetResource = p.resource;
-    let targetDest = p.destination;
-    let targetParams = p.parameters;
+  const handleApplyPreset = (preset: typeof presets[0]) => {
+    let targetResource = preset.resource;
+    let targetDest = preset.destination;
+    let targetParams = preset.parameters;
 
-    const currentAgent = agents?.find((a) => a.id === agentId);
-    const isFinance = currentAgent && (currentAgent.role.toLowerCase().includes('financ') || currentAgent.role.toLowerCase().includes('audit'));
+    const current = agents?.find((a) => a.id === agentId);
+    const isFinance = current && (current.role.toLowerCase().includes('financ') || current.role.toLowerCase().includes('audit'));
 
-    // Adapt normal in-role action to the active agent
-    if (p.name.includes('Normal In-Role Action') && isFinance) {
+    if (preset.name.includes('Normal In-Role Action') && isFinance) {
       targetResource = 'account_statements';
       targetDest = 'internal bank account';
       targetParams = '{\n  "file_id": "statement_october.pdf"\n}';
     }
 
-    setTool(p.tool);
+    setTool(preset.tool);
     setResource(targetResource);
     setDestination(targetDest);
     setParamsStr(targetParams);
-    setIsTainted(p.tainted);
+    setIsTainted(preset.tainted);
     setSimulationResult(null);
     setErrorMsg(null);
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSimulate = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!agentId) {
+      setErrorMsg('Please select an agent identity.');
+      return;
+    }
+
+    let parsedParams: Record<string, any> = {};
+    try {
+      parsedParams = JSON.parse(paramsStr || '{}');
+    } catch (err: any) {
+      setErrorMsg(`Invalid JSON parameters: ${err.message}`);
+      return;
+    }
+
     setIsSubmitting(true);
     setErrorMsg(null);
     setSimulationResult(null);
 
-    if (!agentId) {
-      setErrorMsg('No agent selected. Please register or select an active agent.');
-      setIsSubmitting(false);
-      return;
-    }
-
-    let parsedParams = {};
     try {
-      parsedParams = JSON.parse(paramsStr);
-    } catch {
-      setErrorMsg('Invalid JSON in parameters field.');
-      setIsSubmitting(false);
-      return;
-    }
-
-    try {
-      const resp = await gatewayApi.submitAction({
+      const res = await gatewayApi.submitAction({
         agent_id: agentId,
         session_id: `sim-sess-${Date.now().toString(36)}`,
         task_id: 'simulator-manual-task',
@@ -149,325 +140,424 @@ export const GatewaySimulator: React.FC = () => {
         },
         dry_run: isDryRun,
       });
-
-      setSimulationResult(resp);
-      // Invalidate queries so dashboard, actions, and approvals update immediately!
+      setSimulationResult(res);
       queryClient.invalidateQueries();
     } catch (err: any) {
-      setErrorMsg(err.message || 'Gateway communication failure.');
+      setErrorMsg(err.message || 'Error communicating with security gateway.');
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  const [isResolving, setIsResolving] = useState(false);
-
-  const handleResolveApproval = async (approvalId: string, status: 'approved' | 'rejected') => {
-    setIsResolving(true);
+  const handleApproveQuarantined = async (approvalId: string) => {
     try {
       await approvalsApi.resolve(approvalId, {
-        status,
-        reviewer_id: 'secops-operator',
-        comment: `Directly resolved via Gateway Simulator (${status})`,
+        status: 'approved',
+        reviewer_id: 'secops-simulator-operator',
+        comment: 'Verified and authorized through live simulator pane.',
       });
-
-      // Update the local simulation card to reflect approval!
-      setSimulationResult((prev) =>
-        prev
-          ? {
-              ...prev,
-              status: status === 'approved' ? 'allowed' : 'denied',
-              executed: status === 'approved',
-              execution_result:
-                status === 'approved'
-                  ? { status: 'success', message: 'Action approved and tool successfully executed by gateway adapter.' }
-                  : null,
-            }
-          : null
-      );
+      if (simulationResult) {
+        setSimulationResult({
+          ...simulationResult,
+          status: 'allowed',
+          tier: 'L0',
+        });
+      }
       queryClient.invalidateQueries();
     } catch (err: any) {
-      setErrorMsg(err.message || 'Failed to resolve approval.');
-    } finally {
-      setIsResolving(false);
+      alert(`Approval error: ${err.message}`);
     }
   };
 
-  return (
-    <div className="space-y-6 max-w-7xl mx-auto">
-      {/* Header */}
-      <div>
-        <h2 className="text-xl font-bold text-slate-100 flex items-center gap-2">
-          <PlayCircle className="w-5 h-5 text-cyan-400" />
-          Interactive Pre-Execution Gateway Simulator
-        </h2>
-        <p className="text-xs text-slate-400 mt-1">
-          Submit live tool requests to the pre-execution security gateway to inspect policy gating,
-          multi-dimension risk evaluation, tier assignment, and adapter execution.
-        </p>
-      </div>
+  const currentAgent = agents?.find((a) => a.id === agentId);
 
-      {/* Preset Quick Scenarios */}
-      <div className="p-4 bg-slate-900/40 border border-slate-800 rounded-2xl">
-        <span className="text-xs font-semibold text-slate-300 flex items-center gap-1.5 mb-2.5">
-          <Sparkles className="w-4 h-4 text-cyan-400" />
-          Quick Test Presets (Click to load):
+  return (
+    <MotionPage className="space-y-7 max-w-7xl mx-auto pb-10">
+      {/* Header */}
+      <motion.div
+        variants={fadeUpItem}
+        className="flex flex-col sm:flex-row sm:items-end justify-between gap-5 p-7 sm:p-8 rounded-[28px] surface-elevated editorial-frame"
+      >
+        <div>
+          <div className="flex items-center gap-2 mb-2.5">
+            <span className="px-3 py-1 rounded-full text-[10px] font-mono bg-[#FF5A36]/15 text-[#FF5A36] border border-[#FF5A36]/35 font-semibold flex items-center gap-1.5">
+              <Sparkles className="w-3 h-3 text-[#FF5A36]" />
+              INTERACTIVE DEMO SANDBOX
+            </span>
+          </div>
+          <h2 className="font-display text-2xl sm:text-3xl font-bold text-[#F4F1EA]">
+            Gateway Interception &{' '}
+            <span className="font-editorial italic font-normal text-[#FF5A36]">
+              Policy Simulator
+            </span>
+          </h2>
+          <p className="text-sm text-[#A1A1AA] mt-2 max-w-2xl leading-relaxed">
+            Dispatch tool-call requests directly against the pre-execution security gateway to observe real-time hard-policy checks, multi-dimensional ML anomaly scoring, and cryptographic action binding.
+          </p>
+        </div>
+
+        <div className="px-4 py-2.5 rounded-full bg-[#09090B] border border-[#272730] flex items-center gap-2 self-start sm:self-auto font-mono text-xs text-[#F4F1EA]">
+          <Zap className="w-3.5 h-3.5 text-[#FF5A36]" />
+          <span>Full Mediation Enforced</span>
+        </div>
+      </motion.div>
+
+      {/* Preset Scenarios Buttons */}
+      <motion.div variants={fadeUpItem} className="p-5 rounded-3xl surface-elevated space-y-3">
+        <span className="text-[10px] font-mono uppercase tracking-[0.18em] text-[#A1A1AA] block">
+          Live Demonstration Scenarios
         </span>
-        <div className="flex flex-wrap gap-2">
-          {presets.map((p, idx) => (
-            <button
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+          {presets.map((preset, idx) => (
+            <motion.button
+              whileHover={{ y: -2 }}
+              whileTap={{ scale: 0.99 }}
               key={idx}
               type="button"
-              onClick={() => applyPreset(p)}
-              className="px-3 py-1.5 rounded-xl bg-slate-950 hover:bg-slate-800 border border-slate-800 hover:border-cyan-500/60 text-xs text-slate-300 font-medium transition-colors"
+              onClick={() => handleApplyPreset(preset)}
+              className="p-4 rounded-2xl bg-[#09090B] border border-[#272730] hover:border-[#FF5A36]/60 hover:bg-[#18181E] text-left transition-all group"
             >
-              {p.name}
-            </button>
+              <div className="text-xs font-bold text-[#F4F1EA] group-hover:text-[#FF5A36] transition-colors">
+                {preset.name}
+              </div>
+              <div className="text-[11px] text-[#A1A1AA] font-mono mt-1">
+                {preset.tool} → {preset.resource}
+              </div>
+            </motion.button>
           ))}
         </div>
-      </div>
+      </motion.div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Left: Input Form */}
-        <form
-          onSubmit={handleSubmit}
-          className="p-6 rounded-2xl bg-slate-900/50 border border-slate-800 space-y-4"
-        >
-          <h3 className="text-sm font-bold text-slate-200">Proposed Action Request Payload</h3>
+      {/* Simulator Workspace: Left Form, Right Live Telemetry Output */}
+      <motion.div variants={fadeUpItem} className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        {/* Left Column: Request Form (5 cols) */}
+        <div className="lg:col-span-5 p-7 rounded-[28px] surface-elevated">
+          <h3 className="font-display text-base font-bold text-[#F4F1EA] flex items-center gap-2 mb-1">
+            <Terminal className="w-4 h-4 text-[#FF5A36]" />
+            Agent Tool-Call Request Dispatcher
+          </h3>
+          <p className="text-xs text-[#A1A1AA] mb-5">
+            Simulate an intercepted Model Context Protocol (MCP) or tool-execution event
+          </p>
 
-          <div>
-            <div className="flex items-center justify-between mb-1">
-              <label className="block text-xs font-medium text-slate-400">Target Agent</label>
-              <span className="text-[11px] text-slate-500 font-mono">
-                {agents?.length || 0} registered agents
-              </span>
-            </div>
-            <select
-              value={agentId}
-              onChange={(e) => setAgentId(e.target.value)}
-              className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-xs font-mono text-slate-200 focus:outline-none focus:border-cyan-500"
-            >
-              {agents && agents.length > 0 ? (
-                agents.map((ag) => (
-                  <option key={ag.id} value={ag.id}>
-                    {ag.name} ({ag.role}) — {ag.id}
-                  </option>
-                ))
-              ) : (
-                <option value="">No registered agents found</option>
-              )}
-            </select>
-          </div>
-
-          <div className="grid grid-cols-2 gap-3">
+          <form onSubmit={handleSimulate} className="space-y-4">
+            {/* Target Agent Selector */}
             <div>
-              <label className="block text-xs font-medium text-slate-400 mb-1">Tool</label>
+              <label className="block text-[11px] font-mono uppercase tracking-wider text-[#A1A1AA] mb-1.5">
+                Target Agent Identity
+              </label>
+              <select
+                value={agentId}
+                onChange={(e) => setAgentId(e.target.value)}
+                className="w-full px-3.5 py-2.5 bg-[#09090B] border border-[#272730] rounded-xl text-xs text-[#F4F1EA] font-mono focus:outline-none focus:border-[#FF5A36]"
+              >
+                {agents?.map((a) => (
+                  <option key={a.id} value={a.id}>
+                    {a.name} ({a.role}) — {a.status}
+                  </option>
+                ))}
+              </select>
+              {currentAgent && (
+                <div className="mt-1.5 text-[11px] text-[#A1A1AA] flex items-center gap-2 font-mono">
+                  <span>
+                    Policy: <span className="text-[#FF5A36]">{currentAgent.policy_id}</span>
+                  </span>
+                  <span>•</span>
+                  <span>
+                    Status: <span className="text-[#F4F1EA] capitalize">{currentAgent.status}</span>
+                  </span>
+                </div>
+              )}
+            </div>
+
+            {/* Tool Selection */}
+            <div>
+              <label className="block text-[11px] font-mono uppercase tracking-wider text-[#A1A1AA] mb-1.5">
+                Invoked Tool Name
+              </label>
               <select
                 value={tool}
                 onChange={(e) => setTool(e.target.value)}
-                className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-xs font-mono text-slate-200 focus:outline-none focus:border-cyan-500"
+                className="w-full px-3.5 py-2.5 bg-[#09090B] border border-[#272730] rounded-xl text-xs text-[#F4F1EA] font-mono focus:outline-none focus:border-[#FF5A36]"
               >
                 <option value="read_file">read_file</option>
-                <option value="edit_file">edit_file</option>
                 <option value="query_database">query_database</option>
-                <option value="call_external_api">call_external_api</option>
-                <option value="send_email">send_email</option>
                 <option value="execute_workflow">execute_workflow</option>
+                <option value="send_email">send_email</option>
+                <option value="call_external_api">call_external_api</option>
+                <option value="edit_file">edit_file</option>
               </select>
             </div>
 
+            {/* Target Resource */}
             <div>
-              <label className="block text-xs font-medium text-slate-400 mb-1">Target Resource</label>
+              <label className="block text-[11px] font-mono uppercase tracking-wider text-[#A1A1AA] mb-1.5">
+                Target Resource
+              </label>
               <input
                 type="text"
+                placeholder="e.g. general_ledger, salary_records, supplier_catalog"
                 value={resource}
                 onChange={(e) => setResource(e.target.value)}
-                placeholder="e.g. supplier_catalog"
-                className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-xs font-mono text-slate-200 focus:outline-none focus:border-cyan-500"
+                className="w-full px-3.5 py-2.5 bg-[#09090B] border border-[#272730] rounded-xl text-xs text-[#F4F1EA] font-mono focus:outline-none focus:border-[#FF5A36]"
               />
             </div>
-          </div>
 
-          <div>
-            <label className="block text-xs font-medium text-slate-400 mb-1">Egress / Destination</label>
-            <input
-              type="text"
-              value={destination}
-              onChange={(e) => setDestination(e.target.value)}
-              placeholder="e.g. internal_erp or external_anon_pastebin"
-              className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-xs font-mono text-slate-200 focus:outline-none focus:border-cyan-500"
-            />
-          </div>
-
-          <div>
-            <label className="block text-xs font-medium text-slate-400 mb-1">
-              Parameters JSON (Sensitive values auto-redacted in audit)
-            </label>
-            <textarea
-              rows={4}
-              value={paramsStr}
-              onChange={(e) => setParamsStr(e.target.value)}
-              className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-xs font-mono text-cyan-300 focus:outline-none focus:border-cyan-500"
-            />
-          </div>
-
-          <div className="flex items-center justify-between pt-2 border-t border-slate-800">
-            <label className="flex items-center gap-2 text-xs text-slate-300 cursor-pointer">
+            {/* Target Destination */}
+            <div>
+              <label className="block text-[11px] font-mono uppercase tracking-wider text-[#A1A1AA] mb-1.5">
+                Network / Egress Destination
+              </label>
               <input
-                type="checkbox"
-                checked={isTainted}
-                onChange={(e) => setIsTainted(e.target.checked)}
-                className="rounded border-slate-700 text-cyan-600 focus:ring-0"
+                type="text"
+                placeholder="e.g. internal_erp, external_anon_pastebin"
+                value={destination}
+                onChange={(e) => setDestination(e.target.value)}
+                className="w-full px-3.5 py-2.5 bg-[#09090B] border border-[#272730] rounded-xl text-xs text-[#F4F1EA] font-mono focus:outline-none focus:border-[#FF5A36]"
               />
-              <span>Tainted Provenance (Untrusted Source)</span>
-            </label>
+            </div>
+
+            {/* JSON Parameters */}
+            <div>
+              <label className="block text-[11px] font-mono uppercase tracking-wider text-[#A1A1AA] mb-1.5">
+                Tool Call JSON Arguments
+              </label>
+              <textarea
+                rows={4}
+                value={paramsStr}
+                onChange={(e) => setParamsStr(e.target.value)}
+                className="w-full px-3.5 py-2.5 bg-[#09090B] border border-[#272730] rounded-xl font-mono text-xs text-[#F4F1EA] focus:outline-none focus:border-[#FF5A36] leading-relaxed"
+              />
+            </div>
+
+            {/* Checkboxes: Tainted & Dry-Run */}
+            <div className="flex items-center gap-6 pt-1 text-xs">
+              <label className="flex items-center gap-2 text-[#F4F1EA] cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={isTainted}
+                  onChange={(e) => setIsTainted(e.target.checked)}
+                  className="rounded border-[#272730] bg-[#09090B] text-[#F43F5E] focus:ring-0"
+                />
+                <span className="font-semibold text-[#F43F5E]">Tainted / Injected Context</span>
+              </label>
+
+              <label className="flex items-center gap-2 text-[#A1A1AA] cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={isDryRun}
+                  onChange={(e) => setIsDryRun(e.target.checked)}
+                  className="rounded border-[#272730] bg-[#09090B] text-[#FF5A36] focus:ring-0"
+                />
+                <span>Dry Run (No Adapter Exec)</span>
+              </label>
+            </div>
+
+            {errorMsg && (
+              <div className="p-3.5 rounded-xl bg-[#F43F5E]/15 border border-[#F43F5E]/40 text-[#F43F5E] text-xs">
+                {errorMsg}
+              </div>
+            )}
 
             <button
               type="submit"
               disabled={isSubmitting}
-              className="px-5 py-2.5 bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 disabled:opacity-50 text-white rounded-xl text-xs font-bold shadow-lg shadow-cyan-950 transition-all flex items-center gap-2"
+              className="w-full py-3.5 bg-[#FF5A36] hover:bg-[#ff6b4a] disabled:opacity-50 text-[#09090B] rounded-full text-xs font-bold shadow-[0_0_24px_-4px_rgba(255,90,54,0.45)] transition-all flex items-center justify-center gap-2"
             >
-              <Zap className="w-4 h-4" />
-              {isSubmitting ? 'Processing Gateway...' : 'Submit to Security Gateway'}
+              <PlayCircle className="w-4 h-4" />
+              <span>{isSubmitting ? 'Evaluating via Security Gateway...' : 'Transmit Action Request'}</span>
             </button>
-          </div>
-        </form>
+          </form>
+        </div>
 
-        {/* Right: Live Gateway Mediation Lifecycle & Result */}
-        <div className="p-6 rounded-2xl bg-slate-900/50 border border-slate-800 space-y-4">
-          <h3 className="text-sm font-bold text-slate-200 flex items-center gap-2">
-            <Activity className="w-4 h-4 text-cyan-400" />
-            Gateway Mediation & Enforcement Result
-          </h3>
-
-          {errorMsg && (
-            <div className="p-4 rounded-xl bg-rose-950/40 border border-rose-800 text-xs text-rose-300 flex items-center gap-2.5">
-              <XCircle className="w-5 h-5 text-rose-400 flex-shrink-0" />
-              <span>{errorMsg}</span>
+        {/* Right Column: Gateway Live Telemetry Response (7 cols) */}
+        <div className="lg:col-span-7 space-y-4">
+          {!simulationResult ? (
+            <div className="h-full min-h-[460px] flex flex-col items-center justify-center p-8 rounded-[28px] surface-elevated text-center relative overflow-hidden">
+              <div className="p-4 rounded-2xl bg-[#18181E] border border-[#272730] text-[#FF5A36] mb-4">
+                <PlayCircle className="w-10 h-10 opacity-85" />
+              </div>
+              <h4 className="font-display text-base font-bold text-[#F4F1EA]">
+                Gateway Telemetry Standby
+              </h4>
+              <p className="text-xs text-[#A1A1AA] max-w-sm mt-1.5 leading-relaxed">
+                Configure an action on the left or select a preset to trigger pre-execution evaluation and observe decision tiers, drift attribution, and HMAC signatures.
+              </p>
             </div>
-          )}
-
-          {!simulationResult && !errorMsg && (
-            <div className="h-72 flex flex-col items-center justify-center text-center p-8 border border-dashed border-slate-800 rounded-2xl text-slate-500 text-xs">
-              <Zap className="w-8 h-8 text-slate-600 mb-2" />
-              Submit an action request or choose a preset on the left to observe live pre-execution mediation.
-            </div>
-          )}
-
-          {simulationResult && (
-            <div className="space-y-4 text-xs">
-              {/* Primary Status Card */}
-              <div className="p-4 rounded-xl bg-slate-950 border border-slate-800 flex items-center justify-between">
+          ) : (
+            <motion.div
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="p-7 rounded-[28px] surface-elevated space-y-5"
+            >
+              {/* Decision Outcome Header */}
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-[#272730]">
                 <div>
-                  <span className="text-[10px] text-slate-500 uppercase font-mono block">Final Decision</span>
-                  <div className="flex items-center gap-2 mt-1">
+                  <span className="text-[10px] font-mono uppercase text-[#A1A1AA] tracking-wider font-semibold block mb-1.5">
+                    Gateway Enforcement Decision
+                  </span>
+                  <div className="flex flex-wrap items-center gap-2.5">
                     <StatusBadge status={simulationResult.status} />
                     <RiskTierBadge tier={simulationResult.tier} />
+                    <span className="font-mono text-xs text-[#A1A1AA]">
+                      Action ID:{' '}
+                      <span className="text-[#FF5A36] font-semibold">{simulationResult.action_id}</span>
+                    </span>
                   </div>
                 </div>
 
-                <div className="text-right">
-                  <span className="text-[10px] text-slate-500 uppercase font-mono block">Adapter Status</span>
-                  <span
-                    className={`inline-block mt-1 px-2.5 py-0.5 rounded text-[11px] font-mono font-bold ${
-                      simulationResult.executed
-                        ? 'bg-emerald-950 text-emerald-300 border border-emerald-700'
-                        : 'bg-rose-950 text-rose-300 border border-rose-800'
+                <div className="text-left sm:text-right font-mono text-xs">
+                  <div className="text-[#A1A1AA] text-[10px] uppercase">Execution</div>
+                  <div
+                    className={`font-bold mt-0.5 ${
+                      simulationResult.executed ? 'text-[#10B981]' : 'text-[#F59E0B]'
                     }`}
                   >
-                    {simulationResult.executed ? 'TOOL EXECUTED' : 'EXECUTION WITHHELD'}
-                  </span>
+                    {simulationResult.executed ? 'EXECUTED' : 'HELD / BLOCKED'}
+                  </div>
                 </div>
               </div>
 
-              {/* Instant Approval Action Banner if held */}
-              {simulationResult.approval_id && simulationResult.status === 'held_for_approval' && (
-                <div className="p-3.5 bg-amber-950/40 border border-amber-800/80 rounded-xl flex items-center justify-between gap-3">
-                  <div className="flex items-center gap-2.5">
-                    <Clock className="w-5 h-5 text-amber-400 flex-shrink-0" />
+              {/* L2 Step-Up Approval Prompt directly in Simulator */}
+              {simulationResult.status === 'held_for_approval' && simulationResult.approval_id && (
+                <div className="p-4 rounded-2xl bg-[#F59E0B]/10 border border-[#F59E0B]/40 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                  <div className="flex items-center gap-3">
+                    <Clock className="w-5 h-5 text-[#F59E0B] flex-shrink-0 animate-pulse" />
                     <div>
-                      <span className="font-semibold text-amber-200 block text-xs">
-                        Action Withheld — Step-Up Approval Required
-                      </span>
-                      <span className="text-[10px] text-amber-400/80 font-mono">
-                        Approval ID: {simulationResult.approval_id}
-                      </span>
+                      <div className="text-xs font-bold text-[#F4F1EA]">
+                        Action Quarantined in Step-Up Approval Queue
+                      </div>
+                      <div className="text-[11px] text-[#A1A1AA]">
+                        Authorized reviewer verification required
+                      </div>
                     </div>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <button
-                      type="button"
-                      onClick={() => handleResolveApproval(simulationResult.approval_id!, 'approved')}
-                      disabled={isResolving}
-                      className="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white font-bold text-xs flex items-center gap-1.5 shadow transition-colors"
-                    >
-                      <CheckCircle2 className="w-3.5 h-3.5" />
-                      {isResolving ? 'Executing...' : 'Approve & Execute Now'}
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => handleResolveApproval(simulationResult.approval_id!, 'rejected')}
-                      disabled={isResolving}
-                      className="px-3 py-1.5 rounded-lg bg-rose-700 hover:bg-rose-600 disabled:opacity-50 text-white font-bold text-xs flex items-center gap-1.5 shadow transition-colors"
-                    >
-                      <XCircle className="w-3.5 h-3.5" />
-                      Reject
-                    </button>
-                  </div>
+                  <button
+                    onClick={() =>
+                      simulationResult.approval_id &&
+                      handleApproveQuarantined(simulationResult.approval_id)
+                    }
+                    className="px-4 py-2 bg-[#10B981] hover:bg-[#0ea572] text-[#09090B] rounded-xl text-xs font-bold shadow-md transition-all flex items-center gap-1.5 flex-shrink-0"
+                  >
+                    <CheckCircle2 className="w-3.5 h-3.5" />
+                    Simulate Human Approval
+                  </button>
                 </div>
               )}
 
-              {/* Anomaly & Risk Breakdown */}
-              <div className="p-4 rounded-xl bg-slate-950 border border-slate-800 space-y-2.5">
-                <div className="flex justify-between items-center">
-                  <span className="font-semibold text-slate-300">Risk Anomaly Score</span>
-                  <span className="font-mono font-bold text-cyan-400 text-sm">
-                    {simulationResult.risk.anomaly_score.toFixed(1)} / 10
-                  </span>
+              {/* Anomaly Score and Attribution Gauges */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="p-4 rounded-2xl bg-[#09090B] border border-[#272730]">
+                  <div className="text-[10px] font-mono uppercase text-[#A1A1AA]">
+                    Composite Drift Anomaly Score
+                  </div>
+                  <div className="font-display text-3xl font-bold text-[#FF5A36] mt-1 tabular-nums">
+                    {simulationResult.risk?.anomaly_score !== undefined
+                      ? simulationResult.risk.anomaly_score.toFixed(2)
+                      : '0.00'}{' '}
+                    <span className="text-xs text-[#A1A1AA] font-mono font-normal">/ 10</span>
+                  </div>
+                  <div className="text-[11px] text-[#A1A1AA] mt-1 font-mono">
+                    Model:{' '}
+                    <span className="text-[#F4F1EA]">
+                      {simulationResult.risk?.model_version || simulationResult.model_version}
+                    </span>
+                  </div>
                 </div>
 
-                {simulationResult.risk.dimension_scores && (
-                  <div className="grid grid-cols-2 gap-2 text-[11px]">
-                    {Object.entries(simulationResult.risk.dimension_scores).map(([dim, val]) => (
-                      <div key={dim} className="flex justify-between bg-slate-900/60 p-2 rounded-lg border border-slate-800/60">
-                        <span className="text-slate-400 capitalize">{dim.replace(/_/g, ' ')}</span>
-                        <span className="font-mono text-slate-200">{val}</span>
-                      </div>
-                    ))}
+                <div className="p-4 rounded-2xl bg-[#09090B] border border-[#272730] space-y-1.5">
+                  <span className="text-[10px] font-mono text-[#A1A1AA] uppercase block">
+                    Triggered Reason Codes
+                  </span>
+                  <div className="flex flex-wrap gap-1.5">
+                    {(simulationResult.reasons || simulationResult.risk?.reasons || []).length > 0 ? (
+                      (simulationResult.reasons || simulationResult.risk?.reasons || []).map((r, i) => (
+                        <span
+                          key={i}
+                          className="px-2.5 py-0.5 rounded-md bg-[#F59E0B]/12 border border-[#F59E0B]/35 text-[#F59E0B] font-mono text-[10px]"
+                        >
+                          {r}
+                        </span>
+                      ))
+                    ) : (
+                      <span className="text-[#A1A1AA] font-mono text-[11px]">
+                        Normal in-role baseline
+                      </span>
+                    )}
                   </div>
-                )}
+                </div>
               </div>
 
-              {/* Reason Codes */}
-              {simulationResult.reasons && simulationResult.reasons.length > 0 && (
-                <div className="p-4 rounded-xl bg-slate-950 border border-slate-800 space-y-1.5">
-                  <span className="font-semibold text-slate-300 block">Evaluated Reason Codes:</span>
-                  <div className="flex flex-wrap gap-1.5">
-                    {simulationResult.reasons.map((r, i) => (
-                      <span
-                        key={i}
-                        className="px-2 py-0.5 rounded bg-amber-950/70 border border-amber-800/80 text-amber-300 font-mono text-[11px]"
-                      >
-                        {r}
-                      </span>
-                    ))}
+              {/* Multi-Dimensional Breakdown */}
+              {simulationResult.risk?.dimension_scores && (
+                <div className="p-4 rounded-2xl bg-[#09090B] border border-[#272730] space-y-3">
+                  <span className="text-[10px] font-mono text-[#A1A1AA] uppercase block">
+                    Feature Dimension Breakdown
+                  </span>
+                  <div className="space-y-2.5">
+                    {Object.entries(simulationResult.risk.dimension_scores).map(
+                      ([k, val]: [string, any]) => {
+                        const num = Number(val) || 0;
+                        const pct = Math.round(num * 100);
+                        const barCol =
+                          pct > 70 ? '#F43F5E' : pct > 45 ? '#F59E0B' : '#10B981';
+
+                        return (
+                          <div key={k} className="text-xs">
+                            <div className="flex justify-between text-[11px] mb-1">
+                              <span className="text-[#F4F1EA] capitalize">
+                                {k.replace(/_/g, ' ')}
+                              </span>
+                              <span className="font-mono text-[#F4F1EA] font-semibold">
+                                {num.toFixed(2)}
+                              </span>
+                            </div>
+                            <div className="w-full bg-[#121216] h-2 rounded-full overflow-hidden border border-[#272730]">
+                              <div
+                                className="h-full rounded-full transition-all duration-500"
+                                style={{
+                                  width: `${Math.min(pct, 100)}%`,
+                                  backgroundColor: barCol,
+                                }}
+                              />
+                            </div>
+                          </div>
+                        );
+                      }
+                    )}
                   </div>
                 </div>
               )}
 
-              {/* Downstream Execution Output */}
+              {/* Policy & Model Metadata */}
+              <div className="p-4 rounded-2xl bg-[#09090B] border border-[#272730] flex flex-wrap items-center justify-between gap-2 text-xs font-mono text-[#A1A1AA]">
+                <div>
+                  <span>Enforcement Policy:</span>{' '}
+                  <span className="text-[#FF5A36] font-semibold">
+                    {simulationResult.policy_version}
+                  </span>
+                </div>
+                <div>
+                  <span>Decision ID:</span>{' '}
+                  <span className="text-[#F4F1EA]">{simulationResult.decision_id}</span>
+                </div>
+              </div>
+
+              {/* Execution Adapter Output */}
               {simulationResult.execution_result && (
-                <div className="p-4 rounded-xl bg-slate-950 border border-slate-800 space-y-1.5">
-                  <span className="font-semibold text-emerald-400 block">Tool Execution Result:</span>
-                  <pre className="p-2.5 bg-slate-900/80 rounded-lg text-emerald-300 font-mono text-[11px] overflow-x-auto">
+                <div className="p-4 rounded-2xl bg-[#09090B] border border-[#272730]">
+                  <span className="text-[10px] font-mono text-[#A1A1AA] uppercase block mb-1.5">
+                    Adapter Execution Dispatch Result
+                  </span>
+                  <pre className="p-3 bg-[#121216] rounded-xl border border-[#272730] font-mono text-[#10B981] text-[11px] overflow-x-auto max-h-36">
                     {JSON.stringify(simulationResult.execution_result, null, 2)}
                   </pre>
                 </div>
               )}
-            </div>
+            </motion.div>
           )}
         </div>
-      </div>
-    </div>
+      </motion.div>
+    </MotionPage>
   );
 };

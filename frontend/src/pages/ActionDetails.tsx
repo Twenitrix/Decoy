@@ -2,18 +2,14 @@ import React, { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
   ArrowLeft,
-  Activity,
   ShieldCheck,
-  ShieldAlert,
-  Layers,
   FileCode,
   Hash,
-  Database,
   Terminal,
-  RotateCcw,
   CheckCircle2,
   XCircle,
-  Clock
+  Clock,
+  Cpu
 } from 'lucide-react';
 import { useQueryClient } from '@tanstack/react-query';
 import { useActionDetail } from '../hooks/useActions';
@@ -22,6 +18,7 @@ import { StatusBadge } from '../components/StatusBadge';
 import { RiskTierBadge } from '../components/RiskTierBadge';
 import { LoadingState } from '../components/LoadingState';
 import { ErrorState } from '../components/ErrorState';
+import { MotionPage, motion, fadeUpItem } from '../components/motion';
 
 export const ActionDetails: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -55,253 +52,252 @@ export const ActionDetails: React.FC = () => {
   const dec = action.decision_details;
 
   return (
-    <div className="space-y-6 max-w-5xl mx-auto">
+    <MotionPage className="space-y-6 max-w-5xl mx-auto pb-10">
       {/* Back button */}
-      <div className="flex items-center justify-between">
+      <motion.div variants={fadeUpItem} className="flex items-center justify-between">
         <button
           onClick={() => navigate('/actions')}
-          className="inline-flex items-center gap-2 text-xs text-slate-400 hover:text-slate-200 transition-colors"
+          className="inline-flex items-center gap-2 text-xs text-[#A1A1AA] hover:text-[#F4F1EA] transition-colors"
         >
-          <ArrowLeft className="w-4 h-4" />
-          Back to Action Explorer
+          <ArrowLeft className="w-4 h-4 text-[#FF5A36]" />
+          <span>Back to Action Explorer</span>
         </button>
 
-        <span className="text-xs font-mono text-slate-500">Event ID: {action.id}</span>
-      </div>
+        <span className="text-xs font-mono text-[#FF5A36] font-semibold bg-[#121216] px-3.5 py-1.5 rounded-full border border-[#272730]">
+          Event: {action.id}
+        </span>
+      </motion.div>
 
       {/* Decision Outcome Banner */}
-      <div className="p-6 rounded-2xl bg-slate-900/60 border border-slate-800 flex flex-col md:flex-row md:items-center justify-between gap-6">
+      <motion.div
+        variants={fadeUpItem}
+        className="p-7 sm:p-8 rounded-[28px] surface-elevated editorial-frame flex flex-col md:flex-row md:items-center justify-between gap-6"
+      >
         <div>
-          <div className="flex items-center gap-3 mb-2">
-            <span className="text-xs uppercase font-mono tracking-wider text-slate-400">
+          <div className="flex flex-wrap items-center gap-3 mb-2.5">
+            <span className="text-[10px] uppercase font-mono tracking-[0.16em] text-[#A1A1AA] font-semibold">
               Gateway Enforcement Decision
             </span>
             <StatusBadge status={action.decision} />
             <RiskTierBadge tier={action.tier} />
           </div>
-          <div className="text-2xl font-bold font-mono text-cyan-300 flex items-center gap-2">
+          <div className="font-display text-2xl font-bold font-mono text-[#FF5A36] flex flex-wrap items-center gap-2">
             <span>{action.tool}</span>
-            <span className="text-slate-500 font-normal text-sm">
-              on {action.resource || 'unspecified resource'}
+            <span className="text-[#A1A1AA] font-normal text-sm font-sans">
+              on <span className="font-mono text-[#F4F1EA]">{action.resource || 'unspecified resource'}</span>
             </span>
           </div>
-          <div className="flex items-center gap-4 text-xs text-slate-400 mt-2">
-            <span>Agent: <span className="font-mono text-cyan-400">{action.agent_id}</span></span>
-            <span>•</span>
-            <span>Session: <span className="font-mono text-slate-300">{action.session_id}</span></span>
-            <span>•</span>
-            <span>{new Date(action.timestamp).toLocaleString()}</span>
+          <div className="flex flex-wrap items-center gap-3 text-xs text-[#A1A1AA] mt-2.5 font-mono">
+            <span>
+              Agent: <span className="text-[#F4F1EA] font-semibold">{action.agent_id}</span>
+            </span>
+            <span className="text-[#272730]">•</span>
+            <span>
+              Session: <span className="text-[#F4F1EA]">{action.session_id}</span>
+            </span>
+            <span className="text-[#272730]">•</span>
+            <span className="tabular-nums">{new Date(action.timestamp).toLocaleString()}</span>
           </div>
         </div>
 
-        <div className="text-right border-t md:border-t-0 md:border-l border-slate-800 pt-4 md:pt-0 md:pl-6">
-          <div className="text-[11px] font-mono text-slate-500 uppercase">Execution Adapter</div>
-          <div className="mt-1">
+        <div className="text-left md:text-right border-t md:border-t-0 md:border-l border-[#272730] pt-4 md:pt-0 md:pl-6 flex-shrink-0">
+          <div className="text-[10px] font-mono text-[#A1A1AA] uppercase tracking-wider">
+            Execution Outcome
+          </div>
+          <div className="mt-1.5">
             <span
-              className={`px-3 py-1 rounded-full text-xs font-bold font-mono ${
+              className={`px-3.5 py-1.5 rounded-full text-xs font-bold font-mono border ${
                 action.executed
-                  ? 'bg-emerald-950 text-emerald-300 border border-emerald-700'
-                  : 'bg-rose-950 text-rose-300 border border-rose-800'
+                  ? 'bg-[#10B981]/15 text-[#10B981] border-[#10B981]/40'
+                  : 'bg-[#F43F5E]/15 text-[#F43F5E] border-[#F43F5E]/40'
               }`}
             >
               {action.executed ? 'TOOL EXECUTED' : 'EXECUTION WITHHELD'}
             </span>
           </div>
-          <div className="text-[11px] text-slate-400 mt-2 font-mono">
-            Policy: {dec?.policy_version || 'v1'} | Model: {dec?.model_version || 'baseline-v1'}
-          </div>
         </div>
-      </div>
+      </motion.div>
 
-      {/* Step-Up Approval Banner if held */}
+      {/* Pending Step-Up Resolution Prompt if held */}
       {action.decision === 'held_for_approval' && dec?.approval_id && (
-        <div className="p-4 bg-amber-950/40 border border-amber-800/80 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div className="flex items-center gap-3">
-            <Clock className="w-6 h-6 text-amber-400 flex-shrink-0" />
+        <motion.div
+          variants={fadeUpItem}
+          className="p-5 rounded-2xl bg-[#F59E0B]/10 border border-[#F59E0B]/40 flex flex-col sm:flex-row sm:items-center justify-between gap-4"
+        >
+          <div className="flex items-start gap-3.5">
+            <Clock className="w-5 h-5 text-[#F59E0B] flex-shrink-0 mt-0.5 animate-pulse" />
             <div>
-              <span className="font-bold text-amber-200 block text-sm">
-                Quarantined in Approval Queue
-              </span>
-              <span className="text-xs text-amber-400/80 font-mono">
-                Approval ID: {dec.approval_id} • Status: {dec.approval_status || 'pending'}
-              </span>
+              <h4 className="font-display text-sm font-bold text-[#F4F1EA]">
+                Action Quarantined in Step-Up Approval Queue
+              </h4>
+              <p className="text-xs text-[#A1A1AA] mt-0.5 leading-relaxed">
+                This action requires authorized operator verification before execution adapter dispatch.
+              </p>
             </div>
           </div>
-          {dec.approval_status === 'pending' && (
-            <div className="flex items-center gap-2">
-              <button
-                type="button"
-                onClick={() => handleResolve(dec.approval_id!, 'approved')}
-                disabled={isResolving}
-                className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white font-bold text-xs flex items-center gap-1.5 shadow-lg shadow-emerald-950 transition-colors"
-              >
-                <CheckCircle2 className="w-4 h-4" />
-                {isResolving ? 'Executing...' : 'Approve & Execute Now'}
-              </button>
-              <button
-                type="button"
-                onClick={() => handleResolve(dec.approval_id!, 'rejected')}
-                disabled={isResolving}
-                className="px-4 py-2 rounded-xl bg-rose-700 hover:bg-rose-600 disabled:opacity-50 text-white font-bold text-xs flex items-center gap-1.5 shadow transition-colors"
-              >
-                <XCircle className="w-4 h-4" />
-                Reject
-              </button>
-            </div>
-          )}
-        </div>
+          <div className="flex items-center gap-2.5 flex-shrink-0">
+            <button
+              disabled={isResolving}
+              onClick={() => dec.approval_id && handleResolve(dec.approval_id, 'approved')}
+              className="px-4 py-2 bg-[#10B981] hover:bg-[#0ea572] disabled:opacity-50 text-[#09090B] rounded-xl text-xs font-bold shadow-md transition-all flex items-center gap-1.5"
+            >
+              <CheckCircle2 className="w-3.5 h-3.5" />
+              Approve Execution
+            </button>
+            <button
+              disabled={isResolving}
+              onClick={() => dec.approval_id && handleResolve(dec.approval_id, 'rejected')}
+              className="px-4 py-2 bg-[#F43F5E] hover:bg-[#e11d48] disabled:opacity-50 text-white rounded-xl text-xs font-bold shadow-md transition-all flex items-center gap-1.5"
+            >
+              <XCircle className="w-3.5 h-3.5" />
+              Deny & Block
+            </button>
+          </div>
+        </motion.div>
       )}
 
-      {/* Grid: Reason Codes & Risk Feature Dimensions */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {/* Reasons and Policy Attribution */}
-        <div className="p-5 rounded-2xl bg-slate-900/50 border border-slate-800 space-y-4">
-          <h3 className="text-sm font-semibold text-slate-200 flex items-center gap-2">
-            <ShieldAlert className="w-4 h-4 text-amber-400" />
-            Decision Reason Codes & Policy Attribution
+      {/* Policy Evaluation vs ML Anomaly Attribution */}
+      <motion.div variants={fadeUpItem} className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {/* Policy Engine Evaluation */}
+        <div className="p-7 rounded-[28px] surface-elevated">
+          <h3 className="font-display text-base font-bold text-[#F4F1EA] flex items-center gap-2 mb-1">
+            <FileCode className="w-4 h-4 text-[#FF5A36]" />
+            Deterministic Policy Gate
           </h3>
+          <p className="text-xs text-[#A1A1AA] mb-5">Mandatory hard-policy boundary check (RBAC/ABAC)</p>
 
-          {action.reason_codes && action.reason_codes.length > 0 ? (
-            <div className="space-y-2">
-              {action.reason_codes.map((r, idx) => (
-                <div
-                  key={idx}
-                  className="p-2.5 rounded-xl bg-slate-950 border border-slate-800 flex items-start gap-2.5"
-                >
-                  <span className="w-2 h-2 rounded-full bg-amber-400 mt-1.5 flex-shrink-0" />
-                  <div>
-                    <div className="font-mono text-xs font-bold text-amber-300">{r}</div>
-                    <div className="text-[11px] text-slate-400 mt-0.5">
-                      Evaluated by pre-execution policy gating and risk fusion engine.
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <div className="p-4 rounded-xl bg-slate-950 text-xs text-slate-400 border border-slate-800">
-              No anomaly or policy violation flags triggered. Low-risk in-role action.
-            </div>
-          )}
-
-          <div className="pt-2 text-xs text-slate-400 space-y-1">
-            <div className="flex justify-between">
-              <span className="text-slate-500">Destination Egress:</span>
-              <span className="font-mono text-slate-300">{action.destination || 'Internal'}</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-slate-500">Payload Volume:</span>
-              <span className="font-mono text-slate-300">{action.payload_size || 0} bytes</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-slate-500">Provenance Tainted:</span>
-              <span className="font-mono text-slate-300">
-                {action.provenance_tags?.tainted ? 'YES (Untrusted Source)' : 'NO (Clean)'}
+          <div className="space-y-3 text-xs">
+            <div className="flex items-center justify-between p-4 rounded-2xl bg-[#09090B] border border-[#272730]">
+              <span className="text-[#A1A1AA]">Policy Version Binding</span>
+              <span className="font-mono text-[#FF5A36] font-semibold">
+                {dec?.policy_version || 'v1'}
               </span>
             </div>
-          </div>
-        </div>
 
-        {/* Risk Assessment Breakdown */}
-        <div className="p-5 rounded-2xl bg-slate-900/50 border border-slate-800 space-y-4">
-          <div className="flex items-center justify-between">
-            <h3 className="text-sm font-semibold text-slate-200 flex items-center gap-2">
-              <Layers className="w-4 h-4 text-cyan-400" />
-              Risk Engine Dimensions
-            </h3>
-            <span className="text-xs font-mono font-bold text-cyan-400">
-              Score: {ra?.anomaly_score?.toFixed(1) ?? '0.0'} / 10
-            </span>
-          </div>
-
-          {ra?.dimension_scores ? (
-            <div className="space-y-2.5">
-              {Object.entries(ra.dimension_scores).map(([k, v]) => {
-                const val = Number(v) || 0;
-                const pct = Math.round(val * 100);
-                const color = pct > 70 ? 'bg-red-500' : pct > 45 ? 'bg-amber-500' : 'bg-cyan-500';
-                return (
-                  <div key={k}>
-                    <div className="flex justify-between text-xs mb-1">
-                      <span className="text-slate-400 capitalize">{k.replace(/_/g, ' ')}</span>
-                      <span className="font-mono text-slate-300">{val.toFixed(2)}</span>
-                    </div>
-                    <div className="h-1.5 w-full bg-slate-950 rounded-full overflow-hidden border border-slate-800">
-                      <div className={`h-full ${color}`} style={{ width: `${pct}%` }} />
-                    </div>
-                  </div>
-                );
-              })}
+            <div className="flex items-center justify-between p-4 rounded-2xl bg-[#09090B] border border-[#272730]">
+              <span className="text-[#A1A1AA]">Enforcement Tier</span>
+              <RiskTierBadge tier={action.tier} />
             </div>
-          ) : (
-            <div className="text-xs text-slate-500">No dimensional breakdown available.</div>
-          )}
 
-          <div className="p-3 rounded-xl bg-slate-950 border border-slate-800 text-[11px] text-slate-400 flex items-center justify-between">
-            <span>Calibrated Probability:</span>
-            <span className="font-mono text-slate-300">
-              {ra?.calibrated_probability !== null && ra?.calibrated_probability !== undefined
-                ? `${(ra.calibrated_probability * 100).toFixed(1)}%`
-                : 'null (uncalibrated model)'}
-            </span>
+            <div className="p-4 rounded-2xl bg-[#09090B] border border-[#272730]">
+              <span className="text-[10px] font-mono text-[#A1A1AA] uppercase block mb-1.5">
+                Reason Codes
+              </span>
+              <div className="flex flex-wrap gap-1.5">
+                {(dec?.reason_codes || action.reason_codes || []).length > 0 ? (
+                  (dec?.reason_codes || action.reason_codes).map((r: string, i: number) => (
+                    <span
+                      key={i}
+                      className="px-2.5 py-0.5 rounded-md bg-[#F59E0B]/12 border border-[#F59E0B]/35 text-[#F59E0B] font-mono text-[11px]"
+                    >
+                      {r}
+                    </span>
+                  ))
+                ) : (
+                  <span className="text-[#A1A1AA] font-mono text-[11px]">Normal in-policy execution</span>
+                )}
+              </div>
+            </div>
           </div>
         </div>
-      </div>
+
+        {/* ML Risk Engine Evaluation */}
+        <div className="p-7 rounded-[28px] surface-elevated">
+          <h3 className="font-display text-base font-bold text-[#F4F1EA] flex items-center gap-2 mb-1">
+            <Cpu className="w-4 h-4 text-[#8B5CF6]" />
+            Decoy ML Probabilistic Drift Engine
+          </h3>
+          <p className="text-xs text-[#A1A1AA] mb-5">Multi-dimensional behavioral anomaly inference</p>
+
+          <div className="space-y-3 text-xs">
+            <div className="flex items-center justify-between p-4 rounded-2xl bg-[#09090B] border border-[#272730]">
+              <span className="text-[#A1A1AA]">Composite Anomaly Score</span>
+              <span className="font-mono text-base font-bold text-[#FF5A36] tabular-nums">
+                {ra?.anomaly_score !== undefined ? ra.anomaly_score.toFixed(2) : '0.00'}{' '}
+                <span className="text-xs text-[#A1A1AA] font-normal">/ 10</span>
+              </span>
+            </div>
+
+            <div className="flex items-center justify-between p-4 rounded-2xl bg-[#09090B] border border-[#272730]">
+              <span className="text-[#A1A1AA]">ML Model Version</span>
+              <span className="font-mono text-[#F4F1EA]">{ra?.model_version || 'tuned_composite_detector'}</span>
+            </div>
+
+            <div className="p-4 rounded-2xl bg-[#09090B] border border-[#272730] space-y-2">
+              <span className="text-[10px] font-mono text-[#A1A1AA] uppercase block mb-1">
+                Dimension Attribution
+              </span>
+              {ra?.dimension_scores ? (
+                Object.entries(ra.dimension_scores).map(([dim, val]: [string, any]) => (
+                  <div key={dim} className="flex items-center justify-between text-[11px]">
+                    <span className="text-[#A1A1AA] capitalize">{dim.replace(/_/g, ' ')}</span>
+                    <span className="font-mono text-[#F4F1EA] font-semibold tabular-nums">
+                      {Number(val).toFixed(2)}
+                    </span>
+                  </div>
+                ))
+              ) : (
+                <span className="text-[#A1A1AA] font-mono text-[11px]">No dimension data</span>
+              )}
+            </div>
+          </div>
+        </div>
+      </motion.div>
 
       {/* Redacted Parameters Summary */}
-      <div className="p-5 rounded-2xl bg-slate-900/50 border border-slate-800">
-        <h3 className="text-sm font-semibold text-slate-200 flex items-center gap-2 mb-3">
-          <Terminal className="w-4 h-4 text-slate-400" />
+      <motion.div variants={fadeUpItem} className="p-7 rounded-[28px] surface-elevated">
+        <h3 className="font-display text-sm font-bold text-[#F4F1EA] flex items-center gap-2 mb-3">
+          <Terminal className="w-4 h-4 text-[#FF5A36]" />
           Submitted Action Parameters (Redacted)
         </h3>
-        <pre className="p-4 bg-slate-950 rounded-xl border border-slate-800 text-xs font-mono text-cyan-300 overflow-x-auto">
+        <pre className="p-4 bg-[#09090B] rounded-2xl border border-[#272730] font-mono text-[#F4F1EA] text-xs overflow-x-auto leading-relaxed">
           {JSON.stringify(action.parameters_summary || {}, null, 2)}
         </pre>
-      </div>
+      </motion.div>
 
       {/* Execution Outcome Details */}
       {dec?.execution_outcome && (
-        <div className="p-5 rounded-2xl bg-slate-900/50 border border-slate-800">
-          <h3 className="text-sm font-semibold text-slate-200 flex items-center gap-2 mb-3">
-            <ShieldCheck className="w-4 h-4 text-emerald-400" />
+        <motion.div variants={fadeUpItem} className="p-7 rounded-[28px] surface-elevated">
+          <h3 className="font-display text-sm font-bold text-[#F4F1EA] flex items-center gap-2 mb-3">
+            <ShieldCheck className="w-4 h-4 text-[#10B981]" />
             Downstream Tool Adapter Execution Outcome
           </h3>
-          <pre className="p-4 bg-slate-950 rounded-xl border border-slate-800 text-xs font-mono text-emerald-300 overflow-x-auto">
+          <pre className="p-4 bg-[#09090B] rounded-2xl border border-[#272730] font-mono text-[#10B981] text-xs overflow-x-auto leading-relaxed">
             {JSON.stringify(dec.execution_outcome, null, 2)}
           </pre>
-        </div>
+        </motion.div>
       )}
 
-      {/* Cryptographic Audit Trail */}
+      {/* Cryptographic Append-Only Audit Chain */}
       {action.audit_events && action.audit_events.length > 0 && (
-        <div className="p-5 rounded-2xl bg-slate-900/50 border border-slate-800">
-          <h3 className="text-sm font-semibold text-slate-200 flex items-center gap-2 mb-3">
-            <Hash className="w-4 h-4 text-purple-400" />
-            Append-Only Audit Hash Chain Verification
+        <motion.div variants={fadeUpItem} className="p-7 rounded-[28px] surface-elevated">
+          <h3 className="font-display text-sm font-bold text-[#F4F1EA] flex items-center gap-2 mb-4">
+            <Hash className="w-4 h-4 text-[#8B5CF6]" />
+            Append-Only SHA-256 Audit Hash Chain Verification
           </h3>
-          <div className="space-y-2">
+          <div className="space-y-2.5">
             {action.audit_events.map((ae) => (
               <div
                 key={ae.id}
-                className="p-3 bg-slate-950 rounded-xl border border-slate-800 text-xs space-y-1 font-mono"
+                className="p-4 bg-[#09090B] rounded-2xl border border-[#272730] text-xs space-y-1.5 font-mono"
               >
-                <div className="flex items-center justify-between text-slate-300">
-                  <span className="font-bold text-purple-300">{ae.event_type}</span>
-                  <span className="text-[11px] text-slate-500">
+                <div className="flex items-center justify-between text-[#F4F1EA]">
+                  <span className="font-bold text-[#8B5CF6]">{ae.event_type}</span>
+                  <span className="text-[11px] text-[#A1A1AA] tabular-nums">
                     {new Date(ae.timestamp).toLocaleTimeString()} by {ae.actor}
                   </span>
                 </div>
-                <div className="text-[11px] text-slate-400 truncate">
-                  Hash: <span className="text-slate-300">{ae.event_hash}</span>
+                <div className="text-[11px] text-[#A1A1AA] truncate">
+                  <span>Hash:</span> <span className="text-[#F4F1EA]">{ae.event_hash}</span>
                 </div>
-                <div className="text-[11px] text-slate-500 truncate">
-                  Prev: {ae.prev_hash}
+                <div className="text-[11px] text-[#A1A1AA]/70 truncate">
+                  <span>Prev:</span> <span>{ae.prev_hash}</span>
                 </div>
               </div>
             ))}
           </div>
-        </div>
+        </motion.div>
       )}
-    </div>
+    </MotionPage>
   );
 };
