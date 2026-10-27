@@ -19,7 +19,7 @@
     },
     "model": {
       "root": "model",
-      "runtime": "python"
+      "framework": "fastapi"
     }
   },
   "rewrites": [
